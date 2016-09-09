@@ -212,11 +212,7 @@ demarshal_lldp_neighbors (NMObject *object, GParamSpec *pspec, GVariant *value, 
 }
 
 static void
-device_state_changed (NMDBusDevice *proxy,
-                      guint new_state,
-                      guint old_state,
-                      guint reason,
-                      gpointer user_data);
+device_state_reason_changed (GObject *object, GParamSpec *pspec, gpointer user_data);
 
 static void
 init_dbus (NMObject *object)
@@ -262,78 +258,19 @@ init_dbus (NMObject *object)
 	                                NM_DBUS_INTERFACE_DEVICE,
 	                                property_info);
 
-	g_signal_connect (priv->proxy, "state-changed",
-	                  G_CALLBACK (device_state_changed), object);
-}
-
-typedef struct {
-	NMDeviceState old_state;
-	NMDeviceState new_state;
-	NMDeviceStateReason reason;
-} StateChangeData;
-
-static void
-device_state_change_reloaded (GObject *object,
-                              GAsyncResult *result,
-                              gpointer user_data)
-{
-	NMDevice *self = NM_DEVICE (object);
-	NMDevicePrivate *priv = NM_DEVICE_GET_PRIVATE (self);
-	StateChangeData *data = user_data;
-	NMDeviceState old_state = data->old_state;
-	NMDeviceState new_state = data->new_state;
-	NMDeviceStateReason reason = data->reason;
-
-	g_slice_free (StateChangeData, data);
-
-	_nm_object_reload_properties_finish (NM_OBJECT (object), result, NULL);
-
-	/* If the device changes state several times in rapid succession, then we'll
-	 * queue several reload_properties() calls, and there's no guarantee that
-	 * they'll finish in the right order. In that case, only emit the signal
-	 * for the last one.
-	 */
-	if (priv->last_seen_state != new_state)
-		return;
-
-	/* Ensure that nm_device_get_state() will return the right value even if
-	 * we haven't processed the corresponding PropertiesChanged yet.
-	 */
-	priv->state = new_state;
-
-	g_signal_emit (self, signals[STATE_CHANGED], 0,
-	               new_state, old_state, reason);
+	g_signal_connect (priv->proxy, "notify::state-reason",
+	                  G_CALLBACK (device_state_reason_changed), object);
 }
 
 static void
-device_state_changed (NMDBusDevice *proxy,
-                      guint new_state,
-                      guint old_state,
-                      guint reason,
-                      gpointer user_data)
+device_state_reason_changed (GObject *object, GParamSpec *pspec, gpointer user_data)
 {
 	NMDevice *self = NM_DEVICE (user_data);
 	NMDevicePrivate *priv = NM_DEVICE_GET_PRIVATE (self);
-	StateChangeData *data;
 
-	if (old_state == new_state)
-		return;
-
-	/* Our object-valued properties (eg, ip4_config) will still
-	 * have their old values at this point, because NMObject is
-	 * in the process of asynchronously reading the new values.
-	 * Wait for that to finish before emitting the signal.
-	 */
-	priv->last_seen_state = new_state;
-
-	data = g_slice_new (StateChangeData);
-	data->old_state = old_state;
-	data->new_state = new_state;
-	data->reason = reason;
-	_nm_object_reload_properties_async (NM_OBJECT (user_data),
-	                                    NULL,
-	                                    device_state_change_reloaded,
-	                                    data);
+	g_signal_emit (self, signals[STATE_CHANGED], 0,
+	               priv->state, priv->last_seen_state, priv->reason);
+	priv->last_seen_state = priv->state;
 }
 
 static GType
