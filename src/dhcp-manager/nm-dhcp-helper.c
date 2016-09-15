@@ -131,15 +131,26 @@ main (int argc, char *argv[])
 	gs_unref_variant GVariant *parameters = NULL;
 	gs_unref_variant GVariant *result = NULL;
 	gboolean success = FALSE;
-	guint try_count = 0;
+	guint try_count;
 	gint64 time_end;
 
 	nm_g_type_init ();
 
+	try_count = 0;
+do_connect:
+	try_count++;
 	connection = g_dbus_connection_new_for_address_sync ("unix:path=" NMRUNDIR "/private-dhcp",
 	                                                     G_DBUS_CONNECTION_FLAGS_AUTHENTICATION_CLIENT,
 	                                                     NULL, NULL, &error);
 	if (!connection) {
+		if (   try_count < 10
+		    && g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
+			_LOGi ("could not connect to NetworkManager D-Bus socket: %s (retry %u)",
+			       error->message, try_count);
+			g_clear_error (&error);
+			g_usleep (1000);
+			goto do_connect;
+		}
 		g_dbus_error_strip_remote_error (error);
 		_LOGE ("could not connect to NetworkManager D-Bus socket: %s",
 		       error->message);
@@ -150,6 +161,7 @@ main (int argc, char *argv[])
 
 	time_end = g_get_monotonic_time () + (200 * 1000L); /* retry for at most 200 milliseconds */
 
+	try_count = 0;
 do_notify:
 	try_count++;
 	result = g_dbus_connection_call_sync (connection,
