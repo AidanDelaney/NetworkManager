@@ -90,7 +90,6 @@ enum {
 	PROP_VERSION,
 	PROP_STATE,
 	PROP_STARTUP,
-	PROP_NM_RUNNING,
 	PROP_NETWORKING_ENABLED,
 	PROP_WIRELESS_ENABLED,
 	PROP_WIRELESS_HARDWARE_ENABLED,
@@ -122,10 +121,6 @@ enum {
 };
 
 static guint signals[LAST_SIGNAL] = { 0 };
-
-static void nm_running_changed_cb (GObject *object,
-                                   GParamSpec *pspec,
-                                   gpointer user_data);
 
 /**********************************************************************/
 
@@ -398,14 +393,6 @@ nm_manager_get_startup (NMManager *manager)
 	g_return_val_if_fail (NM_IS_MANAGER (manager), NM_STATE_UNKNOWN);
 
 	return NM_MANAGER_GET_PRIVATE (manager)->startup;
-}
-
-gboolean
-nm_manager_get_nm_running (NMManager *manager)
-{
-	g_return_val_if_fail (NM_IS_MANAGER (manager), FALSE);
-
-	return _nm_object_get_nm_running (NM_OBJECT (manager));
 }
 
 gboolean
@@ -1261,68 +1248,12 @@ free_active_connections (NMManager *manager, gboolean in_dispose)
 		g_object_notify (G_OBJECT (manager), NM_MANAGER_ACTIVE_CONNECTIONS);
 }
 
-static void
-updated_properties (GObject *object, GAsyncResult *result, gpointer user_data)
-{
-	NMManager *manager = NM_MANAGER (user_data);
-	GError *error = NULL;
-
-	if (!_nm_object_reload_properties_finish (NM_OBJECT (object), result, &error)) {
-		if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
-			g_warning ("%s: error reading NMManager properties: %s", __func__, error->message);
-		g_error_free (error);
-	}
-
-	_nm_object_queue_notify (NM_OBJECT (manager), NM_MANAGER_NM_RUNNING);
-}
-
-static void
-nm_running_changed_cb (GObject *object,
-                       GParamSpec *pspec,
-                       gpointer user_data)
-{
-	NMManager *manager = NM_MANAGER (object);
-	NMManagerPrivate *priv = NM_MANAGER_GET_PRIVATE (manager);
-
-	if (!nm_manager_get_nm_running (manager)) {
-		nm_clear_g_cancellable (&priv->props_cancellable);
-
-		priv->state = NM_STATE_UNKNOWN;
-		priv->startup = FALSE;
-		_nm_object_queue_notify (NM_OBJECT (manager), NM_MANAGER_NM_RUNNING);
-		_nm_object_suppress_property_updates (NM_OBJECT (manager), TRUE);
-		poke_wireless_devices_with_rf_status (manager);
-		free_devices (manager, FALSE);
-		free_active_connections (manager, FALSE);
-		update_permissions (manager, NULL);
-		priv->wireless_enabled = FALSE;
-		priv->wireless_hw_enabled = FALSE;
-		priv->wwan_enabled = FALSE;
-		priv->wwan_hw_enabled = FALSE;
-		priv->wimax_enabled = FALSE;
-		priv->wimax_hw_enabled = FALSE;
-		g_free (priv->version);
-		priv->version = NULL;
-	} else {
-		_nm_object_suppress_property_updates (NM_OBJECT (manager), FALSE);
-
-		nm_clear_g_cancellable (&priv->props_cancellable);
-		priv->props_cancellable = g_cancellable_new ();
-		_nm_object_reload_properties_async (NM_OBJECT (manager), priv->props_cancellable, updated_properties, manager);
-
-		manager_recheck_permissions (priv->manager_proxy, manager);
-	}
-}
-
 /****************************************************************/
 
 static void
 constructed (GObject *object)
 {
 	G_OBJECT_CLASS (nm_manager_parent_class)->constructed (object);
-
-	g_signal_connect (object, "notify::" NM_OBJECT_NM_RUNNING,
-	                  G_CALLBACK (nm_running_changed_cb), NULL);
 
 	g_signal_connect (object, "notify::" NM_MANAGER_WIRELESS_ENABLED,
 	                  G_CALLBACK (wireless_enabled_cb), NULL);
@@ -1336,8 +1267,7 @@ init_sync (GInitable *initable, GCancellable *cancellable, GError **error)
 	if (!nm_manager_parent_initable_iface->init (initable, cancellable, error))
 		return FALSE;
 
-	if (   nm_manager_get_nm_running (manager)
-	    && !get_permissions_sync (manager, error))
+	if (!get_permissions_sync (manager, error))
 		return FALSE;
 
 	return TRUE;
@@ -1384,11 +1314,6 @@ init_async_parent_inited (GObject *source, GAsyncResult *result, gpointer user_d
 
 	if (!nm_manager_parent_async_initable_iface->init_finish (G_ASYNC_INITABLE (source), result, &error)) {
 		g_simple_async_result_take_error (init_data->result, error);
-		init_async_complete (init_data);
-		return;
-	}
-
-	if (!nm_manager_get_nm_running (init_data->manager)) {
 		init_async_complete (init_data);
 		return;
 	}
@@ -1525,9 +1450,6 @@ get_property (GObject *object,
 	case PROP_STARTUP:
 		g_value_set_boolean (value, nm_manager_get_startup (self));
 		break;
-	case PROP_NM_RUNNING:
-		g_value_set_boolean (value, nm_manager_get_nm_running (self));
-		break;
 	case PROP_NETWORKING_ENABLED:
 		g_value_set_boolean (value, nm_manager_networking_get_enabled (self));
 		break;
@@ -1620,12 +1542,6 @@ nm_manager_class_init (NMManagerClass *manager_class)
 	g_object_class_install_property
 		(object_class, PROP_STARTUP,
 		 g_param_spec_boolean (NM_MANAGER_STARTUP, "", "",
-		                       FALSE,
-		                       G_PARAM_READABLE |
-		                       G_PARAM_STATIC_STRINGS));
-	g_object_class_install_property
-		(object_class, PROP_NM_RUNNING,
-		 g_param_spec_boolean (NM_MANAGER_NM_RUNNING, "", "",
 		                       FALSE,
 		                       G_PARAM_READABLE |
 		                       G_PARAM_STATIC_STRINGS));
