@@ -640,9 +640,6 @@ init_sync (GInitable *initable, GCancellable *cancellable, GError **error)
 	NMRemoteConnectionPrivate *priv = NM_REMOTE_CONNECTION_GET_PRIVATE (initable);
 	GVariant *settings;
 
-	if (!nm_remote_connection_parent_initable_iface->init (initable, cancellable, error))
-		return FALSE;
-
 	priv->proxy = NMDBUS_SETTINGS_CONNECTION (_nm_object_get_proxy (NM_OBJECT (initable), NM_DBUS_INTERFACE_SETTINGS_CONNECTION));
 	g_assert (priv->proxy);
 	g_signal_connect (priv->proxy, "updated", G_CALLBACK (updated_cb), initable);
@@ -658,6 +655,9 @@ init_sync (GInitable *initable, GCancellable *cancellable, GError **error)
 	priv->visible = TRUE;
 	replace_settings (self, settings);
 	g_variant_unref (settings);
+
+	if (!nm_remote_connection_parent_initable_iface->init (initable, cancellable, error))
+		return FALSE;
 
 	return TRUE;
 }

@@ -1095,6 +1095,7 @@ _nm_object_reload_properties_async (NMObject *object,
                                     GAsyncReadyCallback callback,
                                     gpointer user_data)
 {
+	g_printerr ("_nm_object_reload_properties_async BOT WHY\n");
 #if 0
 	NMObjectPrivate *priv = NM_OBJECT_GET_PRIVATE (object);
 	GSimpleAsyncResult *simple;
@@ -1410,6 +1411,8 @@ dispose (GObject *object)
 {
 	NMObjectPrivate *priv = NM_OBJECT_GET_PRIVATE (object);
 
+g_printerr ("DISPOSE [%p:%s] %p p=%p om=%p\n", priv->object, priv->object ? nm_object_get_path(NM_OBJECT(object)) : "---", object, priv, priv->object_manager);
+
 	nm_clear_g_source (&priv->notify_id);
 
 	g_slist_free_full (priv->notify_items, (GDestroyNotify) notify_item_free);
@@ -1418,7 +1421,13 @@ dispose (GObject *object)
 	g_slist_free_full (priv->waiters, odata_free);
 
 	g_clear_object (&priv->object);
-	g_clear_object (&priv->object_manager);
+	if (priv->object_manager) {
+		g_signal_handlers_disconnect_by_func (priv->object_manager, 
+		                                      G_CALLBACK (on_name_owner_changed),
+		                                      object);
+		g_clear_object (&priv->object_manager);
+	}
+
 
 	G_OBJECT_CLASS (nm_object_parent_class)->dispose (object);
 }

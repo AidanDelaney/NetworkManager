@@ -237,8 +237,10 @@ connection_added (NMRemoteSettings *self,
 	}
 
 	if (nm_remote_connection_get_visible (remote)) {
+g_printerr ("connection added [%s] visible\n", nm_object_get_path (NM_OBJECT (remote)));
 		g_ptr_array_add (priv->visible_connections, remote);
 	} else {
+g_printerr ("connection added [%s] not visible\n", nm_object_get_path (NM_OBJECT (remote)));
 		g_signal_stop_emission (self, signals[CONNECTION_ADDED], 0);
 	}
 

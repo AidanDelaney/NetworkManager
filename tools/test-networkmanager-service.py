@@ -11,6 +11,7 @@ import dbus.mainloop.glib
 import random
 import collections
 import uuid
+from pprint import pprint
 
 mainloop = GLib.MainLoop()
 
@@ -93,6 +94,7 @@ class ExportedObj(dbus.service.Object):
         self._bus = bus
         self.path = object_path
         self.__dbus_ifaces = {}
+        print("ADD OBJECT %s" % object_path)
         object_manager.add_object(self)
 
     def add_dbus_interface(self, dbus_iface, get_props_func, prop_changed_func):
@@ -946,7 +948,6 @@ class NetworkManager(ExportedObj):
         bus.release_name("org.freedesktop.NetworkManager")
         bus.request_name("org.freedesktop.NetworkManager")
 
-
 ###################################################################
 IFACE_CONNECTION = 'org.freedesktop.NetworkManager.Settings.Connection'
 
@@ -1107,6 +1108,8 @@ class Settings(ExportedObj):
             self.remove_next_connection = False
             self.connections[path].Delete()
 
+        con.Delete()
+
         return path
 
     def update_connection(self, connection, path=None, verify_connection=True):
@@ -1254,6 +1257,17 @@ def main():
     manager = NetworkManager(bus, "/org/freedesktop/NetworkManager")
     settings = Settings(bus, "/org/freedesktop/NetworkManager/Settings")
     agent_manager = AgentManager(bus, "/org/freedesktop/NetworkManager/AgentManager")
+
+    if True:
+        print (settings.AddConnection({	
+		'connection': {
+			'id': 'feh',
+			'type': '802-3-ethernet',
+			'uuid': '3455024d-a3fe-40f7-b2b9-33e5e9520de2',
+		}
+	}))
+
+    pprint(object_manager.GetManagedObjects())
 
     if not bus.request_name("org.freedesktop.NetworkManager"):
         sys.exit(1)
