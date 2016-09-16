@@ -946,7 +946,7 @@ class InvalidSettingException(dbus.DBusException):
 class MissingSettingException(dbus.DBusException):
     _dbus_error_name = IFACE_CONNECTION + '.MissingSetting'
 
-class Connection(dbus.service.Object):
+class Connection(ExportedObj):
     def __init__(self, bus, object_path, settings, remove_func, verify_connection=True):
 
         if self.get_uuid(settings) is None:
@@ -955,7 +955,7 @@ class Connection(dbus.service.Object):
             settings['connection']['uuid'] = uuid.uuid4()
         self.verify(settings, verify_strict=verify_connection)
 
-        dbus.service.Object.__init__(self, bus, object_path)
+        ExportedObj.__init__(self, bus, object_path)
 
         self.path = object_path
         self.settings = settings
@@ -963,6 +963,7 @@ class Connection(dbus.service.Object):
         self.visible = True
         self.props = {}
         self.props['Unsaved'] = False
+        self.add_dbus_interface(IFACE_CONNECTION, self.__get_props, None)
 
     def get_uuid(self, settings=None):
         if settings is None:
@@ -1003,20 +1004,11 @@ class Connection(dbus.service.Object):
         self.settings = settings;
         self.Updated()
 
-    # Properties interface
-    @dbus.service.method(dbus_interface=dbus.PROPERTIES_IFACE, in_signature='s', out_signature='a{sv}')
-    def GetAll(self, iface):
-        if iface != IFACE_CONNECTION:
-            raise UnknownInterfaceException()
+    def __get_props(self):
         return self.props
 
-    @dbus.service.method(dbus_interface=dbus.PROPERTIES_IFACE, in_signature='ss', out_signature='v')
-    def Get(self, iface, name):
-        if iface != IFACE_CONNECTION:
-            raise UnknownInterfaceException()
-        if not name in self.props.keys():
-            raise UnknownPropertyException()
-        return self.props[name]
+    def __notify(self, propname):
+        self._dbus_property_notify(IFACE_CONNECTION, propname)
 
     # Connection methods
     @dbus.service.method(dbus_interface=IFACE_CONNECTION, in_signature='', out_signature='a{sa{sv}}')
@@ -1054,9 +1046,9 @@ IFACE_SETTINGS = 'org.freedesktop.NetworkManager.Settings'
 class InvalidHostnameException(dbus.DBusException):
     _dbus_error_name = IFACE_SETTINGS + '.InvalidHostname'
 
-class Settings(dbus.service.Object):
+class Settings(ExportedObj):
     def __init__(self, bus, object_path):
-        dbus.service.Object.__init__(self, bus, object_path)
+        ExportedObj.__init__(self, bus, object_path)
         self.connections = {}
         self.bus = bus
         self.counter = 1
@@ -1065,6 +1057,7 @@ class Settings(dbus.service.Object):
         self.props['Hostname'] = "foobar.baz"
         self.props['CanModify'] = True
         self.props['Connections'] = dbus.Array([], 'o')
+        self.add_dbus_interface(IFACE_SETTINGS, self.__get_props, Settings.PropertiesChanged)
 
     def auto_remove_next_connection(self):
         self.remove_next_connection = True;
@@ -1092,7 +1085,7 @@ class Settings(dbus.service.Object):
         self.connections[path] = con
         self.props['Connections'] = dbus.Array(self.connections.keys(), 'o')
         self.NewConnection(path)
-        self.PropertiesChanged({ 'connections': self.props['Connections'] })
+        self.__notify('Connections')
 
         if self.remove_next_connection:
             self.remove_next_connection = False
@@ -1111,7 +1104,7 @@ class Settings(dbus.service.Object):
     def delete_connection(self, connection):
         del self.connections[connection.path]
         self.props['Connections'] = dbus.Array(self.connections.keys(), 'o')
-        self.PropertiesChanged({ 'connections': self.props['Connections'] })
+        self.__notify('Connections')
 
     @dbus.service.method(dbus_interface=IFACE_SETTINGS, in_signature='s', out_signature='')
     def SaveHostname(self, hostname):
@@ -1119,21 +1112,13 @@ class Settings(dbus.service.Object):
         if hostname.find('.') == -1:
             raise InvalidHostnameException()
         self.props['Hostname'] = hostname
-        self.PropertiesChanged({ 'hostname': hostname })
+        self.__notify('Hostname')
 
-    @dbus.service.method(dbus_interface=dbus.PROPERTIES_IFACE, in_signature='s', out_signature='a{sv}')
-    def GetAll(self, iface):
-        if iface != IFACE_SETTINGS:
-            raise UnknownInterfaceException()
+    def __get_props(self):
         return self.props
 
-    @dbus.service.method(dbus_interface=dbus.PROPERTIES_IFACE, in_signature='ss', out_signature='v')
-    def Get(self, iface, name):
-        if iface != IFACE_SETTINGS:
-            raise UnknownInterfaceException()
-        if not name in self.props.keys():
-            raise UnknownPropertyException()
-        return self.props[name]
+    def __notify(self, propname):
+        self._dbus_property_notify(IFACE_SETTINGS, propname)
 
     @dbus.service.signal(IFACE_SETTINGS, signature='o')
     def NewConnection(self, path):
