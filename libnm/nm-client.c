@@ -2295,11 +2295,31 @@ unhook_om (NMClient *self)
 	NMClientPrivate *priv = NM_CLIENT_GET_PRIVATE (self);
 
 	if (priv->manager) {
+		const GPtrArray *active_connections;
+		const GPtrArray *devices;
+		int i;
+
+		active_connections = nm_manager_get_active_connections (priv->manager);
+		for (i = 0; i < active_connections->len; i++)
+			g_signal_emit (priv->manager, signals[ACTIVE_CONNECTION_REMOVED], 0, active_connections->pdata[i]);
+
+		devices = nm_manager_get_all_devices (priv->manager);
+		for (i = 0; i < devices->len; i++)
+			g_signal_emit (self, signals[DEVICE_REMOVED], 0, devices->pdata[i]);
+
 		g_signal_handlers_disconnect_by_data (priv->manager, self);
 		g_clear_object (&priv->manager);
-		/* notify */
+		g_object_notify (G_OBJECT (self), NM_CLIENT_ACTIVE_CONNECTIONS);
+		g_object_notify (G_OBJECT (self), NM_CLIENT_NM_RUNNING);
 	}
 	if (priv->settings) {
+		const GPtrArray *connections;
+		int i;
+
+		connections = nm_remote_settings_get_connections (priv->settings);
+		for (i = 0; i < connections->len; i++)
+			g_signal_emit (self, signals[CONNECTION_REMOVED], 0, connections->pdata[i]);
+
 		g_signal_handlers_disconnect_by_data (priv->settings, self);
 		g_clear_object (&priv->settings);
 		g_object_notify (G_OBJECT (self), NM_CLIENT_CONNECTIONS);
@@ -2311,6 +2331,7 @@ unhook_om (NMClient *self)
 static void
 new_object_manager (GObject *source_object, GAsyncResult *res, gpointer user_data)
 {
+	g_object_notify (G_OBJECT (user_data), NM_CLIENT_NM_RUNNING);
 }
 
 static void name_owner_changed (GObject *object, GParamSpec *pspec, gpointer user_data);
@@ -2388,7 +2409,7 @@ name_owner_changed (GObject *object, GParamSpec *pspec, gpointer user_data)
 	}
 
 	g_object_unref (object_manager);
-	prepare_object_manager (self, NULL, new_object_manager, NULL);
+	prepare_object_manager (self, NULL, new_object_manager, user_data);
 }
 
 static void

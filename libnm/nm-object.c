@@ -1411,8 +1411,6 @@ dispose (GObject *object)
 {
 	NMObjectPrivate *priv = NM_OBJECT_GET_PRIVATE (object);
 
-g_printerr ("DISPOSE [%p:%s] %p p=%p om=%p\n", priv->object, priv->object ? nm_object_get_path(NM_OBJECT(object)) : "---", object, priv, priv->object_manager);
-
 	nm_clear_g_source (&priv->notify_id);
 
 	g_slist_free_full (priv->notify_items, (GDestroyNotify) notify_item_free);

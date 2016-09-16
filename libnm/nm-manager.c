@@ -1173,72 +1173,19 @@ nm_manager_deactivate_connection_finish (NMManager *manager,
 /****************************************************************/
 
 static void
-free_devices (NMManager *manager)
-{
-	NMManagerPrivate *priv = NM_MANAGER_GET_PRIVATE (manager);
-	gs_unref_ptrarray GPtrArray *real_devices = NULL;
-	gs_unref_ptrarray GPtrArray *all_devices = NULL;
-	GPtrArray *devices = NULL;
-	guint i, j;
-
-	real_devices = priv->devices;
-	all_devices = priv->all_devices;
-
-	priv->devices = NULL;
-	priv->all_devices = NULL;
-
-	if (all_devices && all_devices->len > 0)
-		devices = all_devices;
-	else if (real_devices && real_devices->len > 0)
-		devices = real_devices;
-
-	if (real_devices && devices != real_devices) {
-		for (i = 0; i < real_devices->len; i++) {
-			NMDevice *d = real_devices->pdata[i];
-
-			if (all_devices) {
-				for (j = 0; j < all_devices->len; j++) {
-					if (d == all_devices->pdata[j])
-						goto next;
-				}
-			}
-g_printerr ("EMID DEVICE REMOVED1\n");
-			g_signal_emit (manager, signals[DEVICE_REMOVED], 0, d);
-next:
-			;
-		}
-	}
-	if (devices) {
-		for (i = 0; i < devices->len; i++) {
-g_printerr ("EMID DEVICE REMOVED2\n");
-			g_signal_emit (manager, signals[DEVICE_REMOVED], 0, devices->pdata[i]);
-		}
-	}
-}
-
-static void
 free_active_connections (NMManager *manager)
 {
 	NMManagerPrivate *priv = NM_MANAGER_GET_PRIVATE (manager);
-	GPtrArray *active_connections;
-	NMActiveConnection *active_connection;
 	int i;
 
 	if (!priv->active_connections)
 		return;
 
-	active_connections = priv->active_connections;
+	/* Break circular refs */
+	for (i = 0; i < priv->active_connections->len; i++)
+		g_object_run_dispose (G_OBJECT (priv->active_connections->pdata[i]));
+	g_ptr_array_unref (priv->active_connections);
 	priv->active_connections = NULL;
-
-	for (i = 0; i < active_connections->len; i++) {
-		active_connection = active_connections->pdata[i];
-		g_signal_emit (manager, signals[ACTIVE_CONNECTION_REMOVED], 0, active_connection);
-		/* Break circular refs */
-		g_object_run_dispose (G_OBJECT (active_connection));
-	}
-	g_ptr_array_unref (active_connections);
-
-	g_object_notify (G_OBJECT (manager), NM_MANAGER_ACTIVE_CONNECTIONS);
 }
 
 /****************************************************************/
@@ -1356,7 +1303,16 @@ dispose (GObject *object)
 		g_clear_object (&priv->perm_call_cancellable);
 	}
 
-	free_devices (manager);
+
+	if (priv->devices) {
+		g_ptr_array_unref (priv->devices);
+		priv->devices = NULL;
+	}
+	if (priv->all_devices) {
+		g_ptr_array_unref (priv->all_devices);
+		priv->all_devices = NULL;
+	}
+
 	free_active_connections (manager);
 	g_clear_object (&priv->primary_connection);
 	g_clear_object (&priv->activating_connection);

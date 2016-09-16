@@ -236,13 +236,10 @@ connection_added (NMRemoteSettings *self,
 		                  self);
 	}
 
-	if (nm_remote_connection_get_visible (remote)) {
-g_printerr ("connection added [%s] visible\n", nm_object_get_path (NM_OBJECT (remote)));
+	if (nm_remote_connection_get_visible (remote))
 		g_ptr_array_add (priv->visible_connections, remote);
-	} else {
-g_printerr ("connection added [%s] not visible\n", nm_object_get_path (NM_OBJECT (remote)));
+	else
 		g_signal_stop_emission (self, signals[CONNECTION_ADDED], 0);
-	}
 
 	path = nm_connection_get_path (NM_CONNECTION (remote));
 	addinfo = add_connection_info_find (self, path);
@@ -688,23 +685,14 @@ dispose (GObject *object)
 	NMRemoteSettingsPrivate *priv = NM_REMOTE_SETTINGS_GET_PRIVATE (self);
 	int i;
 
-g_printerr ("DISPOSE REMOTE SETTINGS\n");
-
 	/// ???
 	nm_clear_g_cancellable (&priv->props_cancellable);
 
-
-
 	if (priv->all_connections) {
-		for (i = 0; i < priv->all_connections->len; i++) {
-g_printerr ("CONNECTION REMOVED\n");
-			g_signal_emit (self, signals[CONNECTION_REMOVED], 0, priv->all_connections->pdata[i]);
+		for (i = 0; i < priv->all_connections->len; i++)
 			cleanup_connection (self, priv->all_connections->pdata[i]);
-		}
 		g_clear_pointer (&priv->all_connections, g_ptr_array_unref);
 	}
-
-	//g_signal_handlers_disconnect_by_func (object, G_CALLBACK (nm_running_changed), self);
 
 	g_clear_pointer (&priv->visible_connections, g_ptr_array_unref);
 
