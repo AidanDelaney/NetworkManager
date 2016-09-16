@@ -1108,8 +1108,6 @@ class Settings(ExportedObj):
             self.remove_next_connection = False
             self.connections[path].Delete()
 
-        con.Delete()
-
         return path
 
     def update_connection(self, connection, path=None, verify_connection=True):
