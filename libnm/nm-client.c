@@ -156,6 +156,8 @@ enum {
 
 static guint signals[LAST_SIGNAL] = { 0 };
 
+static GPtrArray empty = { 0, };
+
 /**********************************************************************/
 
 /**
@@ -209,6 +211,9 @@ nm_client_get_version (NMClient *client)
 {
 	g_return_val_if_fail (NM_IS_CLIENT (client), NULL);
 
+	if (!nm_client_get_nm_running (client));
+		return NULL;
+
 	return nm_manager_get_version (NM_CLIENT_GET_PRIVATE (client)->manager);
 }
 
@@ -225,6 +230,9 @@ nm_client_get_state (NMClient *client)
 {
 	g_return_val_if_fail (NM_IS_CLIENT (client), NM_STATE_UNKNOWN);
 
+	if (!nm_client_get_nm_running (client));
+		return NM_STATE_UNKNOWN;
+
 	return nm_manager_get_state (NM_CLIENT_GET_PRIVATE (client)->manager);
 }
 
@@ -240,7 +248,10 @@ nm_client_get_state (NMClient *client)
 gboolean
 nm_client_get_startup (NMClient *client)
 {
-	g_return_val_if_fail (NM_IS_CLIENT (client), NM_STATE_UNKNOWN);
+	g_return_val_if_fail (NM_IS_CLIENT (client), FALSE);
+
+	if (!nm_client_get_nm_running (client));
+		return FALSE;
 
 	return nm_manager_get_startup (NM_CLIENT_GET_PRIVATE (client)->manager);
 }
@@ -258,7 +269,8 @@ nm_client_get_nm_running (NMClient *client)
 {
 	g_return_val_if_fail (NM_IS_CLIENT (client), FALSE);
 
-	return nm_manager_get_nm_running (NM_CLIENT_GET_PRIVATE (client)->manager);
+	//return nm_manager_get_nm_running (NM_CLIENT_GET_PRIVATE (client)->manager);
+	return NM_CLIENT_GET_PRIVATE (client)->manager != NULL;
 }
 
 /**
@@ -273,6 +285,9 @@ gboolean
 nm_client_networking_get_enabled (NMClient *client)
 {
 	g_return_val_if_fail (NM_IS_CLIENT (client), FALSE);
+
+	if (!nm_client_get_nm_running (client));
+		return FALSE;
 
 	return nm_manager_networking_get_enabled (NM_CLIENT_GET_PRIVATE (client)->manager);
 }
@@ -314,6 +329,9 @@ nm_client_wireless_get_enabled (NMClient *client)
 {
 	g_return_val_if_fail (NM_IS_CLIENT (client), FALSE);
 
+	if (!nm_client_get_nm_running (client));
+		return FALSE;
+
 	return nm_manager_wireless_get_enabled (NM_CLIENT_GET_PRIVATE (client)->manager);
 }
 
@@ -329,7 +347,7 @@ nm_client_wireless_set_enabled (NMClient *client, gboolean enabled)
 {
 	g_return_if_fail (NM_IS_CLIENT (client));
 
-	if (!_nm_client_check_nm_running (client, NULL))
+	if (!nm_client_get_nm_running (client));
 		return;
 
 	nm_manager_wireless_set_enabled (NM_CLIENT_GET_PRIVATE (client)->manager, enabled);
@@ -348,6 +366,9 @@ nm_client_wireless_hardware_get_enabled (NMClient *client)
 {
 	g_return_val_if_fail (NM_IS_CLIENT (client), FALSE);
 
+	if (!nm_client_get_nm_running (client));
+		return FALSE;
+
 	return nm_manager_wireless_hardware_get_enabled (NM_CLIENT_GET_PRIVATE (client)->manager);
 }
 
@@ -363,6 +384,9 @@ gboolean
 nm_client_wwan_get_enabled (NMClient *client)
 {
 	g_return_val_if_fail (NM_IS_CLIENT (client), FALSE);
+
+	if (!nm_client_get_nm_running (client));
+		return FALSE;
 
 	return nm_manager_wwan_get_enabled (NM_CLIENT_GET_PRIVATE (client)->manager);
 }
@@ -398,6 +422,9 @@ nm_client_wwan_hardware_get_enabled (NMClient *client)
 {
 	g_return_val_if_fail (NM_IS_CLIENT (client), FALSE);
 
+	if (!nm_client_get_nm_running (client));
+		return FALSE;
+
 	return nm_manager_wwan_hardware_get_enabled (NM_CLIENT_GET_PRIVATE (client)->manager);
 }
 
@@ -414,6 +441,9 @@ nm_client_wimax_get_enabled (NMClient *client)
 {
 	g_return_val_if_fail (NM_IS_CLIENT (client), FALSE);
 
+	if (!nm_client_get_nm_running (client));
+		return FALSE;
+
 	return nm_manager_wimax_get_enabled (NM_CLIENT_GET_PRIVATE (client)->manager);
 }
 
@@ -429,7 +459,7 @@ nm_client_wimax_set_enabled (NMClient *client, gboolean enabled)
 {
 	g_return_if_fail (NM_IS_CLIENT (client));
 
-	if (!_nm_client_check_nm_running (client, NULL))
+	if (!nm_client_get_nm_running (client));
 		return;
 
 	nm_manager_wimax_set_enabled (NM_CLIENT_GET_PRIVATE (client)->manager, enabled);
@@ -447,6 +477,9 @@ gboolean
 nm_client_wimax_hardware_get_enabled (NMClient *client)
 {
 	g_return_val_if_fail (NM_IS_CLIENT (client), FALSE);
+
+	if (!nm_client_get_nm_running (client));
+		return FALSE;
 
 	return nm_manager_wimax_hardware_get_enabled (NM_CLIENT_GET_PRIVATE (client)->manager);
 }
@@ -518,6 +551,9 @@ nm_client_get_permission_result (NMClient *client, NMClientPermission permission
 {
 	g_return_val_if_fail (NM_IS_CLIENT (client), NM_CLIENT_PERMISSION_RESULT_UNKNOWN);
 
+	if (!nm_client_get_nm_running (client));
+		return NM_CLIENT_PERMISSION_RESULT_UNKNOWN;
+
 	return nm_manager_get_permission_result (NM_CLIENT_GET_PRIVATE (client)->manager, permission);
 }
 
@@ -536,6 +572,9 @@ NMConnectivityState
 nm_client_get_connectivity (NMClient *client)
 {
 	g_return_val_if_fail (NM_IS_CLIENT (client), NM_CONNECTIVITY_UNKNOWN);
+
+	if (!nm_client_get_nm_running (client));
+		return NM_CONNECTIVITY_UNKNOWN;
 
 	return nm_manager_get_connectivity (NM_CLIENT_GET_PRIVATE (client)->manager);
 }
@@ -673,6 +712,9 @@ nm_client_save_hostname (NMClient *client,
 {
 	g_return_val_if_fail (NM_IS_CLIENT (client), FALSE);
 
+	if (!_nm_client_check_nm_running (client, error))
+		return FALSE;
+
 	return nm_remote_settings_save_hostname (NM_CLIENT_GET_PRIVATE (client)->settings,
 	                                         hostname, cancellable, error);
 }
@@ -779,6 +821,9 @@ nm_client_get_devices (NMClient *client)
 {
 	g_return_val_if_fail (NM_IS_CLIENT (client), NULL);
 
+	if (!nm_client_get_nm_running (client));
+		return &empty;
+
 	return nm_manager_get_devices (NM_CLIENT_GET_PRIVATE (client)->manager);
 }
 
@@ -807,6 +852,9 @@ nm_client_get_all_devices (NMClient *client)
 {
 	g_return_val_if_fail (NM_IS_CLIENT (client), NULL);
 
+	if (!nm_client_get_nm_running (client));
+		return &empty;
+
 	return nm_manager_get_all_devices (NM_CLIENT_GET_PRIVATE (client)->manager);
 }
 
@@ -825,6 +873,9 @@ nm_client_get_device_by_path (NMClient *client, const char *object_path)
 	g_return_val_if_fail (NM_IS_CLIENT (client), NULL);
 	g_return_val_if_fail (object_path, NULL);
 
+	if (!nm_client_get_nm_running (client));
+		return NULL;
+
 	return nm_manager_get_device_by_path (NM_CLIENT_GET_PRIVATE (client)->manager, object_path);
 }
 
@@ -842,6 +893,9 @@ nm_client_get_device_by_iface (NMClient *client, const char *iface)
 {
 	g_return_val_if_fail (NM_IS_CLIENT (client), NULL);
 	g_return_val_if_fail (iface, NULL);
+
+	if (!nm_client_get_nm_running (client));
+		return NULL;
 
 	return nm_manager_get_device_by_iface (NM_CLIENT_GET_PRIVATE (client)->manager, iface);
 }
@@ -864,6 +918,9 @@ const GPtrArray *
 nm_client_get_active_connections (NMClient *client)
 {
 	g_return_val_if_fail (NM_IS_CLIENT (client), NULL);
+
+	if (!nm_client_get_nm_running (client));
+		return &empty;
 
 	return nm_manager_get_active_connections (NM_CLIENT_GET_PRIVATE (client)->manager);
 }
@@ -892,6 +949,9 @@ nm_client_get_primary_connection (NMClient *client)
 {
 	g_return_val_if_fail (NM_IS_CLIENT (client), NULL);
 
+	if (!nm_client_get_nm_running (client));
+		return NULL;
+
 	return nm_manager_get_primary_connection (NM_CLIENT_GET_PRIVATE (client)->manager);
 }
 
@@ -910,6 +970,9 @@ NMActiveConnection *
 nm_client_get_activating_connection (NMClient *client)
 {
 	g_return_val_if_fail (NM_IS_CLIENT (client), NULL);
+
+	if (!nm_client_get_nm_running (client));
+		return NULL;
 
 	return nm_manager_get_activating_connection (NM_CLIENT_GET_PRIVATE (client)->manager);
 }
@@ -1152,7 +1215,7 @@ nm_client_deactivate_connection (NMClient *client,
 	g_return_val_if_fail (NM_IS_CLIENT (client), FALSE);
 	g_return_val_if_fail (NM_IS_ACTIVE_CONNECTION (active), FALSE);
 
-	if (!_nm_client_check_nm_running (client, NULL))
+	if (!nm_client_get_nm_running (client));
 		return TRUE;
 
 	return nm_manager_deactivate_connection (NM_CLIENT_GET_PRIVATE (client)->manager,
@@ -1259,6 +1322,9 @@ nm_client_get_connections (NMClient *client)
 {
 	g_return_val_if_fail (NM_IS_CLIENT (client), NULL);
 
+	if (!nm_client_get_nm_running (client));
+		return &empty;
+
 	return nm_remote_settings_get_connections (NM_CLIENT_GET_PRIVATE (client)->settings);
 }
 
@@ -1280,6 +1346,9 @@ nm_client_get_connection_by_id (NMClient *client, const char *id)
 {
 	g_return_val_if_fail (NM_IS_CLIENT (client), NULL);
 	g_return_val_if_fail (id != NULL, NULL);
+
+	if (!nm_client_get_nm_running (client));
+		NULL;
 
 	return nm_remote_settings_get_connection_by_id (NM_CLIENT_GET_PRIVATE (client)->settings, id);
 }
@@ -1303,6 +1372,9 @@ nm_client_get_connection_by_path (NMClient *client, const char *path)
 	g_return_val_if_fail (NM_IS_CLIENT (client), NULL);
 	g_return_val_if_fail (path != NULL, NULL);
 
+	if (!nm_client_get_nm_running (client));
+		NULL;
+
 	return nm_remote_settings_get_connection_by_path (NM_CLIENT_GET_PRIVATE (client)->settings, path);
 }
 
@@ -1324,6 +1396,9 @@ nm_client_get_connection_by_uuid (NMClient *client, const char *uuid)
 {
 	g_return_val_if_fail (NM_IS_CLIENT (client), NULL);
 	g_return_val_if_fail (uuid != NULL, NULL);
+
+	if (!nm_client_get_nm_running (client));
+		NULL;
 
 	return nm_remote_settings_get_connection_by_uuid (NM_CLIENT_GET_PRIVATE (client)->settings, uuid);
 }
@@ -2267,15 +2342,19 @@ got_object_manager (GObject *object, GAsyncResult *result, gpointer user_data)
 		return;
 	}
 
-	if (!objects_created (client, object_manager, &error)) {
-		g_simple_async_result_take_error (init_data->result, error);
-		init_async_complete (init_data);
-		return;
-	}
+	if (g_dbus_object_manager_client_get_name_owner (G_DBUS_OBJECT_MANAGER_CLIENT (object_manager))) {
+		if (!objects_created (client, object_manager, &error)) {
+			g_simple_async_result_take_error (init_data->result, error);
+			init_async_complete (init_data);
+			return;
+		}
 
-	objects = g_dbus_object_manager_get_objects (object_manager);
-	g_list_foreach (objects, (GFunc) async_init_nm_object, init_data);
-	g_list_free_full (objects, g_object_unref);
+		objects = g_dbus_object_manager_get_objects (object_manager);
+		g_list_foreach (objects, (GFunc) async_init_nm_object, init_data);
+		g_list_free_full (objects, g_object_unref);
+	} else {
+		init_async_complete (init_data);
+	}
 
 	g_signal_connect (object_manager, "notify::name-owner",
 	                  G_CALLBACK (name_owner_changed), client);
