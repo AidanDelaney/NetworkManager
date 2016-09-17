@@ -2301,7 +2301,7 @@ unhook_om (NMClient *self)
 
 		active_connections = nm_manager_get_active_connections (priv->manager);
 		for (i = 0; i < active_connections->len; i++)
-			g_signal_emit (priv->manager, signals[ACTIVE_CONNECTION_REMOVED], 0, active_connections->pdata[i]);
+			g_signal_emit (self, signals[ACTIVE_CONNECTION_REMOVED], 0, active_connections->pdata[i]);
 
 		devices = nm_manager_get_all_devices (priv->manager);
 		for (i = 0; i < devices->len; i++)
