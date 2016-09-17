@@ -678,10 +678,9 @@ main (int argc, char *argv[])
 	nmc_value_transforms_register ();
 
 	nmc_init (&nm_cli);
-	if (process_command_line (&nm_cli, argc, argv)) {
-		loop = g_main_loop_new (NULL, FALSE);  /* create main loop */
-		g_main_loop_run (loop);                /* run main loop */
-	}
+	loop = g_main_loop_new (NULL, FALSE);
+	if (process_command_line (&nm_cli, argc, argv))
+		g_main_loop_run (loop);
 
 	if (nm_cli.complete) {
 		/* Remove error statuses from command completion runs. */
