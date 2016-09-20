@@ -218,6 +218,7 @@ deferred_notify_cb (gpointer data)
 	/* Emit added/removed signals first since some of our internal objects
 	 * use the added/removed signals for new object processing.
 	 */
+g_printerr ("DEFERRED NOTIFY [%s]\n", nm_object_get_path (object));
 	for (iter = props; iter; iter = g_slist_next (iter)) {
 		NotifyItem *item = iter->data;
 		char buf[50];
@@ -239,6 +240,7 @@ deferred_notify_cb (gpointer data)
 			break;
 		}
 		if (ret > 0) {
+g_printerr ("   DEFERRED NOTIFY [%s] [%s] [%s]\n", item->property, buf, item->changed ? nm_object_get_path (item->changed): "xx");
 			g_assert (ret < sizeof (buf));
 			g_signal_emit_by_name (object, buf, item->changed);
 		}
@@ -689,6 +691,7 @@ handle_object_array_property (NMObject *self, const char *property_name, GVarian
 
 	priv->reload_remaining++;
 
+g_printerr ("npaths=%ld\n", npaths);
 	if (npaths == 0) {
 		object_property_maybe_complete (odata, FALSE);
 		return TRUE;
@@ -726,6 +729,9 @@ handle_property_changed (NMObject *self, const char *dbus_name, GVariant *value)
 	GSList *iter;
 
 	prop_name = wincaps_to_dash (dbus_name);
+
+
+g_printerr ("PC [%s] [%s]\n", nm_object_get_path (NM_OBJECT (self)), dbus_name);
 
 	/* Iterate through the object and its parents to find the property */
 	for (iter = priv->property_tables; iter; iter = g_slist_next (iter)) {

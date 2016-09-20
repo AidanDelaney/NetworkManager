@@ -80,7 +80,9 @@ nodist_libnmdbus_la_SOURCES = \
 	nmdbus-vpn-connection.c \
 	nmdbus-vpn-connection.h \
 	nmdbus-vpn-plugin.c \
-	nmdbus-vpn-plugin.h
+	nmdbus-vpn-plugin.h \
+	nmdbus-wimax-nsp.c \
+	nmdbus-wimax-nsp.h
 
 DBUS_INTERFACE_DOCS = \
 	nmdbus-access-point-org.freedesktop.NetworkManager.AccessPoint.xml \

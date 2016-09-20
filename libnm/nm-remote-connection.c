@@ -581,6 +581,8 @@ updated_get_settings_cb (GObject *proxy,
 	GVariant *new_settings;
 	gboolean visible;
 
+g_printerr ("RMC updated_get_settings_cb\n");
+
 	if (!nmdbus_settings_connection_call_get_settings_finish (priv->proxy, &new_settings,
 	                                                          result, NULL)) {
 		/* Connection is no longer visible to this user. */
@@ -639,6 +641,8 @@ init_sync (GInitable *initable, GCancellable *cancellable, GError **error)
 	NMRemoteConnection *self = NM_REMOTE_CONNECTION (initable);
 	NMRemoteConnectionPrivate *priv = NM_REMOTE_CONNECTION_GET_PRIVATE (initable);
 	GVariant *settings;
+
+g_printerr ("FFF INIT SYNC\n");
 
 	priv->proxy = NMDBUS_SETTINGS_CONNECTION (_nm_object_get_proxy (NM_OBJECT (initable), NM_DBUS_INTERFACE_SETTINGS_CONNECTION));
 	g_assert (priv->proxy);
@@ -727,6 +731,8 @@ init_async (GAsyncInitable *initable, int io_priority,
 {
 	NMRemoteConnectionInitData *init_data;
 	NMRemoteConnectionPrivate *priv = NM_REMOTE_CONNECTION_GET_PRIVATE (initable);
+
+g_printerr ("FFF INIT ASYNC\n");
 
 	init_data = g_slice_new0 (NMRemoteConnectionInitData);
 	init_data->cancellable = cancellable ? g_object_ref (cancellable) : NULL;

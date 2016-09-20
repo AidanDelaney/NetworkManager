@@ -799,6 +799,7 @@ recheck_pending_activations (NMManager *self)
 	const GPtrArray *devices;
 	NMDevice *device;
 
+g_printerr (">> R662\n");
 	/* For each pending activation, look for an active connection that has the
 	 * pending activation's object path, where the active connection and its
 	 * device have both updated their properties to point to each other, and
@@ -839,6 +840,7 @@ activation_cancelled (GCancellable *cancellable,
 	if (!g_cancellable_set_error_if_cancelled (cancellable, &error))
 		return;
 
+g_printerr (">> R663\n");
 	activate_info_complete (info, NULL, error);
 	g_clear_error (&error);
 }
@@ -849,12 +851,15 @@ active_removed (NMObject *object, NMActiveConnection *active, gpointer user_data
 	ActivateInfo *info = user_data;
 	GError *error = NULL;
 
+g_printerr ("ACTIVE REMOVED =========\n");
+
 	if (strcmp (info->active_path, nm_object_get_path (NM_OBJECT (active))))
 		return;
 
 	error = g_error_new_literal (NM_CLIENT_ERROR,
 	                             NM_CLIENT_ERROR_FAILED,
 	                             _("Active connection could not be attached to the device"));
+g_printerr (">> R664\n");
 	activate_info_complete (info, NULL, error);
 	g_clear_error (&error);
 }
@@ -881,6 +886,7 @@ activate_cb (GObject *object,
 		recheck_pending_activations (info->manager);
 	} else {
 		g_dbus_error_strip_remote_error (error);
+g_printerr (">> R665\n");
 		activate_info_complete (info, NULL, error);
 		g_clear_error (&error);
 	}
@@ -945,6 +951,7 @@ add_activate_cb (GObject *object,
 	ActivateInfo *info = user_data;
 	GError *error = NULL;
 
+g_printerr (">> R2\n");
 	if (nmdbus_manager_call_add_and_activate_connection_finish (NMDBUS_MANAGER (object),
 	                                                            NULL,
 	                                                            &info->active_path,
@@ -954,12 +961,14 @@ add_activate_cb (GObject *object,
 			                                       G_CALLBACK (activation_cancelled), info);
 		}
 
+g_printerr (">> R3\n");
 		g_signal_connect (info->manager, "active-connection-removed",
 		                  G_CALLBACK (active_removed), info);
 
 		recheck_pending_activations (info->manager);
 	} else {
 		g_dbus_error_strip_remote_error (error);
+g_printerr (">> R666\n");
 		activate_info_complete (info, NULL, error);
 		g_clear_error (&error);
 	}
@@ -997,6 +1006,7 @@ nm_manager_add_and_activate_connection_async (NMManager *manager,
 	if (!dict)
 		dict = g_variant_new_array (G_VARIANT_TYPE ("{sa{sv}}"), NULL, 0);
 
+g_printerr (">> R1\n");
 	nmdbus_manager_call_add_and_activate_connection (priv->manager_proxy,
 	                                                 dict,
 	                                                 nm_object_get_path (NM_OBJECT (device)),
@@ -1072,6 +1082,7 @@ object_creation_failed (NMObject *object, const char *failed_path)
 	GError *error;
 	GSList *iter;
 
+g_printerr (">> R661\n");
 	/* A newly activated connection failed due to some immediate error
 	 * and disappeared from active connection list.  Make sure the
 	 * callback gets called.
@@ -1084,6 +1095,7 @@ object_creation_failed (NMObject *object, const char *failed_path)
 		ActivateInfo *info = iter->data;
 
 		if (g_strcmp0 (failed_path, info->active_path) == 0) {
+g_printerr (">> R667\n");
 			activate_info_complete (info, NULL, error);
 			g_error_free (error);
 			return;

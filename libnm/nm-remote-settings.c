@@ -183,6 +183,7 @@ connection_visible_changed (GObject *object,
 	NMRemoteConnection *connection = NM_REMOTE_CONNECTION (object);
 	NMRemoteSettings *self = NM_REMOTE_SETTINGS (user_data);
 
+g_printerr ("CONN VIS CHANGED f60\n");
 	if (nm_remote_connection_get_visible (connection))
 		g_signal_emit (self, signals[CONNECTION_ADDED], 0, connection);
 	else
@@ -227,6 +228,8 @@ connection_added (NMRemoteSettings *self,
 	NMRemoteSettingsPrivate *priv = NM_REMOTE_SETTINGS_GET_PRIVATE (self);
 	AddConnectionInfo *addinfo;
 	const char *path;
+
+g_printerr (" F60\n");
 
 	if (!g_signal_handler_find (remote, G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA, 0, 0, NULL,
 	                            G_CALLBACK (connection_visible_changed), self)) {
@@ -278,6 +281,8 @@ add_connection_done (GObject *proxy, GAsyncResult *result, gpointer user_data)
 	AddConnectionInfo *info = user_data;
 	GError *error = NULL;
 
+g_printerr (" F3\n");
+
 	if (info->saved) {
 		nmdbus_settings_call_add_connection_finish (NMDBUS_SETTINGS (proxy),
 		                                            &info->path,
@@ -324,6 +329,7 @@ nm_remote_settings_add_connection_async (NMRemoteSettings *settings,
 
 	new_settings = nm_connection_to_dbus (connection, NM_CONNECTION_SERIALIZE_ALL);
 
+g_printerr (" F2\n");
 	if (save_to_disk) {
 		nmdbus_settings_call_add_connection (priv->proxy,
 		                                     new_settings,
