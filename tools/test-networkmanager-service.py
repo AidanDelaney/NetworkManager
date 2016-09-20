@@ -292,7 +292,7 @@ class VlanDevice(Device):
         props = {}
         props[PV_HW_ADDRESS] = self.mac
         props[PV_CARRIER] = self.carrier
-        props[PV_VLAN_ID] = self.vlan_id
+        props[PV_VLAN_ID] = dbus.UInt32(self.vlan_id)
         return props
 
     @dbus.service.signal(IFACE_VLAN, signature='a{sv}')
@@ -762,6 +762,7 @@ class NetworkManager(ExportedObj):
 
         if s_con['id'] == 'object-creation-failed-test':
             self.active_connections.remove(ac)
+            self.__notify(PM_ACTIVE_CONNECTIONS)
             ac.remove_from_connection()
         else:
             GLib.timeout_add(50, set_device_ac_cb, device, ac)
@@ -993,8 +994,8 @@ class Connection(ExportedObj):
         self.props = {}
         self.props['Unsaved'] = False
 
-        ExportedObj.__init__(self, bus, object_path)
         self.add_dbus_interface(IFACE_CONNECTION, self.__get_props, None)
+        ExportedObj.__init__(self, bus, object_path)
 
     def get_uuid(self, settings=None):
         if settings is None:
