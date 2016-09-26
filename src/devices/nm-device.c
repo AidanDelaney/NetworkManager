@@ -460,7 +460,9 @@ static gboolean ip_config_valid (NMDeviceState state);
 static NMActStageReturn dhcp4_start (NMDevice *self, NMConnection *connection, NMDeviceStateReason *reason);
 static gboolean dhcp6_start (NMDevice *self, gboolean wait_for_ll, NMDeviceStateReason *reason);
 static void nm_device_start_ip_check (NMDevice *self);
-static void realize_start_setup (NMDevice *self, const NMPlatformLink *plink);
+static void realize_start_setup (NMDevice *self,
+                                 const NMPlatformLink *plink,
+                                 NMUnmanFlagOp unmanaged_user_explicit);
 static void nm_device_set_mtu (NMDevice *self, guint32 mtu);
 static void dhcp_schedule_restart (NMDevice *self, int family, const char *reason);
 static void _cancel_activation (NMDevice *self);
@@ -2078,6 +2080,7 @@ link_type_compatible (NMDevice *self,
  * nm_device_realize_start():
  * @self: the #NMDevice
  * @plink: an existing platform link or %NULL
+ * @unmanaged_user_explicit: the user-explicit unmanaged flag
  * @out_compatible: %TRUE on return if @self is compatible with @plink
  * @error: location to store error, or %NULL
  *
@@ -2093,6 +2096,7 @@ link_type_compatible (NMDevice *self,
 gboolean
 nm_device_realize_start (NMDevice *self,
                          const NMPlatformLink *plink,
+                         NMUnmanFlagOp unmanaged_user_explicit,
                          gboolean *out_compatible,
                          GError **error)
 {
@@ -2116,7 +2120,7 @@ nm_device_realize_start (NMDevice *self,
 		plink_copy = *plink;
 		plink = &plink_copy;
 	}
-	realize_start_setup (self, plink);
+	realize_start_setup (self, plink, NM_UNMAN_FLAG_OP_FORGET);
 
 	return TRUE;
 }
@@ -2156,7 +2160,7 @@ nm_device_create_and_realize (NMDevice *self,
 		plink = &plink_copy;
 	}
 
-	realize_start_setup (self, plink);
+	realize_start_setup (self, plink, NM_UNMAN_FLAG_OP_FORGET);
 	nm_device_realize_finish (self, plink);
 
 	if (nm_device_get_managed (self, FALSE)) {
@@ -2234,6 +2238,7 @@ realize_start_notify (NMDevice *self, const NMPlatformLink *plink)
  * realize_start_setup():
  * @self: the #NMDevice
  * @plink: the #NMPlatformLink if backed by a kernel netdevice
+ * @unmanaged_user_explicit: the user-explict unmanaged flag to set.
  *
  * Update the device from backing resource properties (like hardware
  * addresses, carrier states, driver/firmware info, etc).  This function
@@ -2242,7 +2247,9 @@ realize_start_notify (NMDevice *self, const NMPlatformLink *plink)
  * stuff).
  */
 static void
-realize_start_setup (NMDevice *self, const NMPlatformLink *plink)
+realize_start_setup (NMDevice *self,
+                     const NMPlatformLink *plink,
+                     NMUnmanFlagOp unmanaged_user_explicit)
 {
 	NMDevicePrivate *priv;
 	NMDeviceClass *klass;
@@ -2348,6 +2355,11 @@ realize_start_setup (NMDevice *self, const NMPlatformLink *plink)
 		priv->stats.timeout_id = g_timeout_add (real_rate, _stats_timeout_cb, self);
 
 	klass->realize_start_notify (self, plink);
+
+	nm_assert (!nm_device_get_unmanaged_mask (self, NM_UNMANAGED_USER_EXPLICIT));
+	nm_device_set_unmanaged_flags (self,
+	                               NM_UNMANAGED_USER_EXPLICIT,
+	                               unmanaged_user_explicit);
 
 	/* Do not manage externally created software devices until they are IFF_UP
 	 * or have IP addressing */
