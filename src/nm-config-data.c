@@ -526,6 +526,17 @@ _nm_config_data_log_sort (const char **pa, const char **pb, gpointer dummy)
 	return 0;
 }
 
+static struct {
+	char *group;
+	char *key;
+	char *default_value;
+} default_values[] = {
+	{ "main",          "plugins",      NM_CONFIG_PLUGINS_DEFAULT },
+	{ "main",          "rc-manager",   NM_CONFIG_DEFAULT_DNS_RC_MANAGER },
+	{ "main",          "auth-polkit",  NM_CONFIG_DEFAULT_AUTH_POLKIT },
+	{ "logging",       "backend",      NM_CONFIG_LOGGING_BACKEND_DEFAULT },
+};
+
 void
 nm_config_data_log (const NMConfigData *self,
                     const char *prefix,
@@ -535,7 +546,7 @@ nm_config_data_log (const NMConfigData *self,
 	NMConfigDataPrivate *priv;
 	gs_strfreev char **groups = NULL;
 	gsize ngroups;
-	guint g, k;
+	guint g, k, i;
 	FILE *stream = print_stream;
 
 	g_return_if_fail (NM_IS_CONFIG_DATA (self));
@@ -581,6 +592,15 @@ nm_config_data_log (const NMConfigData *self,
 
 		_LOG (stream, prefix, "");
 		_LOG (stream, prefix, "[%s]%s", group, is_atomic && !stream ? " # atomic section" : "");
+
+		/* Print default values as comments */
+		for (i = 0; i < G_N_ELEMENTS (default_values); i++) {
+			if (   nm_streq (default_values[i].group, group)
+			    && !g_key_file_has_key (priv->keyfile, group, default_values[i].key, NULL)) {
+				_LOG (stream, prefix, "%s# %s=%s", key_prefix, default_values[i].key,
+				      default_values[i].default_value);
+			}
+		}
 
 		keys = g_key_file_get_keys (priv->keyfile, group, NULL, NULL);
 		for (k = 0; keys && keys[k]; k++) {
