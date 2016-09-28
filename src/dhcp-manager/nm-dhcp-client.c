@@ -777,18 +777,7 @@ nm_dhcp_client_handle_event (gpointer unused,
 	return TRUE;
 }
 
-/********************************************/
-
-static void
-nm_dhcp_client_init (NMDhcpClient *self)
-{
-	NMDhcpClientPrivate *priv;
-
-	priv = G_TYPE_INSTANCE_GET_PRIVATE (self, NM_TYPE_DHCP_CLIENT, NMDhcpClientPrivate);
-	self->_priv = priv;
-
-	priv->pid = -1;
-}
+/*****************************************************************************/
 
 static void
 get_property (GObject *object, guint prop_id,
@@ -863,6 +852,19 @@ set_property (GObject *object, guint prop_id,
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
 	}
+}
+
+/*****************************************************************************/
+
+static void
+nm_dhcp_client_init (NMDhcpClient *self)
+{
+	NMDhcpClientPrivate *priv;
+
+	priv = G_TYPE_INSTANCE_GET_PRIVATE (self, NM_TYPE_DHCP_CLIENT, NMDhcpClientPrivate);
+	self->_priv = priv;
+
+	priv->pid = -1;
 }
 
 static void
