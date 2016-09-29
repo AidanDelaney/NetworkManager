@@ -29,6 +29,8 @@
 #include "NetworkManagerUtils.h"
 #include "nm-device-private.h"
 #include "nm-platform.h"
+#include "nm-ip4-config.h"
+#include "nm-ip6-config.h"
 
 #define NM_MODEM_BROADBAND_MODEM "modem"
 

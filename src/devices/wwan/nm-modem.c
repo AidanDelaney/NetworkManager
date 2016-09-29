@@ -32,6 +32,10 @@
 #include "nm-device-private.h"
 #include "nm-modem-enum-types.h"
 #include "nm-route-manager.h"
+#include "nm-act-request.h"
+#include "nm-ip4-config.h"
+#include "nm-ip6-config.h"
+#include "ppp-manager/nm-ppp-status.h"
 
 G_DEFINE_TYPE (NMModem, nm_modem, G_TYPE_OBJECT)
 

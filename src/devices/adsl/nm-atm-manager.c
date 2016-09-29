@@ -20,31 +20,41 @@
 
 #include "nm-default.h"
 
+#include "nm-atm-manager.h"
+
 #include <string.h>
 #include <gudev/gudev.h>
 #include <gmodule.h>
 
-#include "nm-atm-manager.h"
 #include "nm-setting-adsl.h"
 #include "nm-device-adsl.h"
 #include "nm-device-factory.h"
 #include "nm-platform.h"
+
+/*****************************************************************************/
 
 typedef struct {
 	GUdevClient *client;
 	GSList *devices;
 } NMAtmManagerPrivate;
 
-#define NM_ATM_MANAGER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), NM_TYPE_ATM_MANAGER, NMAtmManagerPrivate))
+struct _NMAtmManager {
+	GObject parent;
+	NMAtmManagerPrivate _priv;
+};
 
-static GType nm_atm_manager_get_type (void);
+struct _NMAtmManagerClass {
+	GObjectClass parent;
+};
 
 static void device_factory_interface_init (NMDeviceFactoryInterface *factory_iface);
 
 G_DEFINE_TYPE_EXTENDED (NMAtmManager, nm_atm_manager, G_TYPE_OBJECT, 0,
                         G_IMPLEMENT_INTERFACE (NM_TYPE_DEVICE_FACTORY, device_factory_interface_init))
 
-/**************************************************************************/
+#define NM_ATM_MANAGER_GET_PRIVATE(self) _NM_GET_PRIVATE (self, NMAtmManager, NM_IS_ATM_MANAGER)
+
+/*****************************************************************************/
 
 G_MODULE_EXPORT NMDeviceFactory *
 nm_device_factory_create (GError **error)
@@ -52,7 +62,7 @@ nm_device_factory_create (GError **error)
 	return (NMDeviceFactory *) g_object_new (NM_TYPE_ATM_MANAGER, NULL);
 }
 
-/************************************************************************/
+/*****************************************************************************/
 
 static gboolean
 dev_get_attrs (GUdevDevice *udev_device,
@@ -226,6 +236,35 @@ NM_DEVICE_FACTORY_DECLARE_TYPES (
 /*********************************************************************/
 
 static void
+dispose (GObject *object)
+{
+	NMAtmManager *self = NM_ATM_MANAGER (object);
+	NMAtmManagerPrivate *priv = NM_ATM_MANAGER_GET_PRIVATE (self);
+	GSList *iter;
+
+	if (priv->client) {
+		g_signal_handlers_disconnect_by_func (priv->client, handle_uevent, self);
+		g_clear_object (&priv->client);
+	}
+
+	for (iter = priv->devices; iter; iter = iter->next)
+		g_object_weak_unref (G_OBJECT (iter->data), device_destroyed, self);
+	g_clear_pointer (&priv->devices, g_slist_free);
+
+	G_OBJECT_CLASS (nm_atm_manager_parent_class)->dispose (object);
+}
+
+static void
+nm_atm_manager_class_init (NMAtmManagerClass *klass)
+{
+	GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+	object_class->dispose = dispose;
+}
+
+/*****************************************************************************/
+
+static void
 nm_atm_manager_init (NMAtmManager *self)
 {
 	NMAtmManagerPrivate *priv = NM_ATM_MANAGER_GET_PRIVATE (self);
@@ -240,33 +279,4 @@ device_factory_interface_init (NMDeviceFactoryInterface *factory_iface)
 {
 	factory_iface->get_supported_types = get_supported_types;
 	factory_iface->start = start;
-}
-
-static void
-dispose (GObject *object)
-{
-	NMAtmManager *self = NM_ATM_MANAGER (object);
-	NMAtmManagerPrivate *priv = NM_ATM_MANAGER_GET_PRIVATE (self);
-	GSList *iter;
-
-	if (priv->client)
-		g_signal_handlers_disconnect_by_func (priv->client, handle_uevent, self);
-	g_clear_object (&priv->client);
-
-	for (iter = priv->devices; iter; iter = iter->next)
-		g_object_weak_unref (G_OBJECT (iter->data), device_destroyed, self);
-	g_clear_pointer (&priv->devices, g_slist_free);
-
-	G_OBJECT_CLASS (nm_atm_manager_parent_class)->dispose (object);
-}
-
-static void
-nm_atm_manager_class_init (NMAtmManagerClass *klass)
-{
-	GObjectClass *object_class = G_OBJECT_CLASS (klass);
-
-	g_type_class_add_private (klass, sizeof (NMAtmManagerPrivate));
-
-	/* virtual methods */
-	object_class->dispose = dispose;
 }

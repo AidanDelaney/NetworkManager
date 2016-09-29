@@ -24,14 +24,15 @@
 
 #define NM_TYPE_ATM_MANAGER            (nm_atm_manager_get_type ())
 #define NM_ATM_MANAGER(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), NM_TYPE_ATM_MANAGER, NMAtmManager))
+#define NM_ATM_MANAGER_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass),  NM_TYPE_ATM_MANAGER, NMAtmManagerClass))
+#define NM_IS_ATM_MANAGER(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), NM_TYPE_ATM_MANAGER))
+#define NM_IS_ATM_MANAGER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass),  NM_TYPE_ATM_MANAGER))
+#define NM_ATM_MANAGER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  NM_TYPE_ATM_MANAGER, NMAtmManagerClass))
 
-typedef struct {
-	GObject parent;
-} NMAtmManager;
+typedef struct _NMAtmManager NMAtmManager;
+typedef struct _NMAtmManagerClass NMAtmManagerClass;
 
-typedef struct {
-	GObjectClass parent;
-} NMAtmManagerClass;
+GType nm_atm_manager_get_type (void);
 
 #endif /* __NETWORKMANAGER_ATM_MANAGER_H__ */
 

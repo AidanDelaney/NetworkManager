@@ -390,16 +390,12 @@ nm_checkpoint_class_init (NMCheckpointClass *checkpoint_class)
 	GObjectClass *object_class = G_OBJECT_CLASS (checkpoint_class);
 	NMExportedObjectClass *exported_object_class = NM_EXPORTED_OBJECT_CLASS (checkpoint_class);
 
-	g_type_class_add_private (checkpoint_class, sizeof (NMCheckpointPrivate));
-
 	exported_object_class->export_path = NM_DBUS_PATH "/Checkpoint/%u";
 	exported_object_class->export_on_construction = FALSE;
 
-	/* virtual methods */
 	object_class->dispose = dispose;
 	object_class->get_property = get_property;
 
-	/* properties */
 	obj_properties[PROP_DEVICES] =
 	     g_param_spec_boxed (NM_CHECKPOINT_DEVICES, "", "",
 	                         G_TYPE_STRV,
